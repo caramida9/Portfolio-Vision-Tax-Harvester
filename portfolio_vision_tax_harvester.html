@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Vision & Tax Harvester</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- FontAwesome 6 for reliable icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full bg-slate-900 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+    <div id="app" class="min-h-full flex flex-col">
+        <!-- Top Navigation Bar -->
+        <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid fa-chart-pie text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight tracking-tight text-white">Portfolio Vision & Tax Harvester</h1>
+                        <p class="text-xs text-slate-400">UK CGT Tax Optimizer & Freetrade Portfolio Manager</p>
+                    </div>
+                </div>
+                <!-- Navigation Tabs (Desktop) -->
+                <nav class="hidden md:flex space-x-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700/60">
+                    <button type="button" onclick="switchTab('dashboard')" id="nav-dashboard" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-brand-600 text-white shadow flex items-center space-x-2">
+                        <i class="fa-solid fa-list-ul"></i>
+                        <span>Dashboard & Holdings</span>
+                    </button>
+                    <button type="button" onclick="switchTab('upload')" id="nav-upload" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        <span>Screenshot Parser / OCR</span>
+                    </button>
+                    <button type="button" onclick="switchTab('cgt')" id="nav-cgt" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span>CGT Tax Strategy</span>
+                    </button>
+                </nav>
+                <div class="flex items-center space-x-3">
+                    <button type="button" onclick="exportToExcel()" class="hidden sm:inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Export Excel</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Navigation -->
+            <div class="md:hidden flex border-t border-slate-700 bg-slate-900/95 px-2 py-2 justify-around">
+                <button type="button" onclick="switchTab('dashboard')" id="mob-nav-dashboard" class="text-xs font-medium py-1.5 px-3 rounded-lg text-white bg-brand-600 flex items-center space-x-1">
+                    <i class="fa-solid fa-list-ul"></i>
+                    <span>Holdings</span>
+                </button>
+                <button type="button" onclick="switchTab('upload')" id="mob-nav-upload" class="text-xs font-medium py-1.5 px-3 rounded-lg text-slate-400 flex items-center space-x-1">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span>Parser</span>
+                </button>
+                <button type="button" onclick="switchTab('cgt')" id="mob-nav-cgt" class="text-xs font-medium py-1.5 px-3 rounded-lg text-slate-400 flex items-center space-x-1">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>CGT Strategy</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+            <!-- ================= TAB 1: DASHBOARD & HOLDINGS ================= -->
+            <div id="tab-dashboard" class="space-y-6">
+                <!-- Summary Metrics Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Total Portfolio Value</span>
+                            <i class="fa-solid fa-wallet text-brand-500 text-base"></i>
+                        </div>
+                        <div id="stat-total-val" class="text-2xl font-bold text-white">£0.00</div>
+                        <div class="text-xs text-slate-400 mt-1"><span id="stat-holding-count" class="text-brand-400 font-semibold">0</span> assets tracked</div>
+                    </div>
+
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Total Net Gain / Loss</span>
+                            <i class="fa-solid fa-chart-line text-emerald-400 text-base"></i>
+                        </div>
+                        <div id="stat-total-gain" class="text-2xl font-bold text-emerald-400">+£0.00</div>
+                        <div class="text-xs text-slate-400 mt-1">Across active positions</div>
+                    </div>
+
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Long-Term Core Holds</span>
+                            <i class="fa-solid fa-shield-halved text-amber-400 text-base"></i>
+                        </div>
+                        <div id="stat-core-count" class="text-2xl font-bold text-amber-400">0 Protected</div>
+                        <div class="text-xs text-slate-400 mt-1" id="stat-core-sub">Protected from CGT harvesting</div>
+                    </div>
+
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">CGT Allowance Margin</span>
+                            <i class="fa-solid fa-scale-balanced text-blue-400 text-base"></i>
+                        </div>
+                        <div id="stat-cgt-margin" class="text-2xl font-bold text-blue-400">£3,000.00</div>
+                        <div class="text-xs text-slate-400 mt-1">Annual UK CGT limit</div>
+                    </div>
+                </div>
+
+                <!-- Controls Bar -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/40 p-4 rounded-2xl border border-slate-700/60">
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-80">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-3 text-sm"></i>
+                            <input type="text" id="searchInput" oninput="renderDashboard()" placeholder="Search ticker or name..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <select id="filterCategory" onchange="renderDashboard()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-brand-500">
+                            <option value="all">All Assets</option>
+                            <option value="core">Long-Term Core Only</option>
+                            <option value="gainer">Gainers Only</option>
+                            <option value="loser">Losers Only</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                        <button type="button" onclick="openAddModal()" class="bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow-lg shadow-brand-600/20 flex items-center space-x-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Asset</span>
+                        </button>
+                        <button type="button" onclick="clearAllAssets()" class="bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/50 text-rose-300 text-sm font-medium px-3 py-2 rounded-xl transition flex items-center space-x-1.5" title="Wipe entire portfolio to start from scratch">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span class="hidden lg:inline">Clear All</span>
+                        </button>
+                        <button type="button" onclick="resetToDefaultData()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium px-3 py-2 rounded-xl transition flex items-center space-x-1.5" title="Reload pre-populated 80+ Freetrade dataset with default core holdings">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span class="hidden lg:inline">Reset Full Dataset</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Data Table Container -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900/90 border-b border-slate-700 text-xs font-semibold uppercase tracking-wider text-slate-400 select-none">
+                                    <th onclick="handleSort('name')" class="py-3.5 px-4 cursor-pointer hover:text-white transition">
+                                        <div class="flex items-center space-x-1">
+                                            <span>Asset Name / Ticker</span>
+                                            <i id="sort-icon-name" class="fa-solid fa-sort text-slate-500 text-xs"></i>
+                                        </div>
+                                    </th>
+                                    <th onclick="handleSort('shares')" class="py-3.5 px-4 text-right cursor-pointer hover:text-white transition">
+                                        <div class="flex items-center justify-end space-x-1.5">
+                                            <span>Shares</span>
+                                            <i id="sort-icon-shares" class="fa-solid fa-sort text-slate-500 text-xs"></i>
+                                        </div>
+                                    </th>
+                                    <th onclick="handleSort('value')" class="py-3.5 px-4 text-right cursor-pointer hover:text-white transition">
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <span>Current Value (£)</span>
+                                            <i id="sort-icon-value" class="fa-solid fa-sort text-slate-500 text-xs"></i>
+                                        </div>
+                                    </th>
+                                    <th onclick="handleSort('returnPct')" class="py-3.5 px-4 text-right cursor-pointer hover:text-white transition">
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <span>Total Return (%)</span>
+                                            <i id="sort-icon-returnPct" class="fa-solid fa-sort text-slate-500 text-xs"></i>
+                                        </div>
+                                    </th>
+                                    <th onclick="handleSort('costBasis')" class="py-3.5 px-4 text-right cursor-pointer hover:text-white transition">
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <span>Cost Basis (£)</span>
+                                            <i id="sort-icon-costBasis" class="fa-solid fa-sort text-slate-500 text-xs"></i>
+                                        </div>
+                                    </th>
+                                    <th onclick="handleSort('gainLoss')" class="py-3.5 px-4 text-right cursor-pointer hover:text-white transition">
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <span>Gain / Loss (£)</span>
+                                            <i id="sort-icon-gainLoss" class="fa-solid fa-sort text-slate-500 text-xs"></i>
+                                        </div>
+                                    </th>
+                                    <th class="py-3.5 px-4 text-center">Long-Term Core</th>
+                                    <th class="py-3.5 px-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holdingsTableBody" class="divide-y divide-slate-700/60 text-sm">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 2: SCREENSHOT UPLOAD PARSER ================= -->
+            <div id="tab-upload" class="space-y-6 hidden">
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl">
+                    <div class="max-w-2xl mx-auto text-center space-y-3">
+                        <div class="bg-brand-600/10 text-brand-400 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto border border-brand-500/20">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-white">Upload Freetrade Screenshots</h2>
+                        <p class="text-sm text-slate-400">
+                            Upload screenshots of the Freetrade <span class="text-slate-300">Investments</span> list. The app reads each holding's name, ticker, shares, value and return % on your device, then shows you a review table before anything is imported.
+                        </p>
+                    </div>
+
+                    <!-- Dropzone -->
+                    <div id="dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" class="mt-6 border-2 border-dashed border-slate-600 hover:border-brand-500 rounded-2xl p-8 text-center cursor-pointer transition bg-slate-900/50">
+                        <input type="file" id="fileInput" multiple accept="image/*" onchange="handleFileSelect(event)" class="hidden">
+                        <label for="fileInput" class="cursor-pointer space-y-2 block">
+                            <i class="fa-solid fa-images text-3xl text-slate-500 mb-2 block"></i>
+                            <div class="text-slate-300 font-medium">Click to upload or drag & drop screenshots here</div>
+                            <div class="text-xs text-slate-500">PNG, JPG or WEBP &bull; several screenshots are merged (overlapping rows are de-duplicated)</div>
+                        </label>
+                    </div>
+
+                    <!-- Uploaded Preview Grid -->
+                    <div id="uploadPreviewGrid" class="mt-6 grid grid-cols-3 sm:grid-cols-5 gap-3 hidden">
+                        <!-- Preview thumbnails -->
+                    </div>
+
+                    <div id="parserActionArea" class="mt-6 flex justify-center items-center gap-3 hidden">
+                        <button type="button" id="ocrRunBtn" onclick="runOCRParse()" class="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl shadow-lg shadow-brand-600/30 transition flex items-center space-x-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Run OCR & Parse Holdings</span>
+                        </button>
+                        <button type="button" onclick="clearUploads()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium px-4 py-3 rounded-xl transition">Clear</button>
+                    </div>
+
+                    <!-- OCR progress -->
+                    <div id="ocrProgress" class="mt-6 max-w-xl mx-auto space-y-2 hidden">
+                        <div id="ocrStatus" class="text-sm text-slate-300 text-center"></div>
+                        <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
+                            <div id="ocrBar" class="h-full bg-brand-500 transition-all duration-200" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <p class="mt-5 text-xs text-slate-500 text-center max-w-2xl mx-auto">
+                        Tip: use Freetrade &rarr; Portfolio &rarr; Investments. For long lists, scroll and take several screenshots. The OCR engine (Tesseract.js) is downloaded the first time you run it, so you need an internet connection then. Images are never uploaded anywhere.
+                    </p>
+                </div>
+
+                <!-- Import result banner -->
+                <div id="importResult" class="hidden rounded-2xl border px-5 py-4 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"></div>
+
+                <!-- Review panel -->
+                <div id="reviewPanel" class="hidden bg-slate-800/80 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-4 sm:p-5 bg-slate-900/80 border-b border-slate-700 space-y-3">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Review parsed holdings</h3>
+                                <p id="reviewSummary" class="text-sm text-slate-400 mt-0.5"></p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" onclick="reviewSelectOK()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition">Select all OK</button>
+                                <button type="button" onclick="reviewSelectNone()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition">Clear selection</button>
+                                <button type="button" onclick="discardReview()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition">Discard</button>
+                                <button type="button" id="reviewImportBtn" onclick="importReviewedRows()" class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2">
+                                    <i class="fa-solid fa-file-import"></i>
+                                    <span id="reviewImportLabel">Import selected</span>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">
+                            Rows marked <span class="text-amber-400">Check</span> are unticked until you've looked at them. Every field is editable. OCR can mix up characters such as O/0 and drop minus signs, so compare the Return % column with your phone. For <span class="text-emerald-400">New</span> holdings you can tick <span class="text-amber-400">Core hold</span> to protect them from CGT harvesting; existing holdings keep their current setting (change it on the Dashboard).
+                        </p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900/90 border-b border-slate-700 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                    <th class="py-3 px-3 text-center w-10">Import</th>
+                                    <th class="py-3 px-3">Status</th>
+                                    <th class="py-3 px-3">Name</th>
+                                    <th class="py-3 px-3">Ticker</th>
+                                    <th class="py-3 px-3 text-right">Shares</th>
+                                    <th class="py-3 px-3 text-right">Value (£)</th>
+                                    <th class="py-3 px-3 text-right">Return (%)</th>
+                                    <th class="py-3 px-3 text-center" title="Mark a new holding as a protected long-term core hold">Core hold</th>
+                                    <th class="py-3 px-3">Change vs. current</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviewTableBody" class="divide-y divide-slate-700/60 text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div id="reviewUnparsed" class="hidden border-t border-slate-700 bg-slate-900/50 px-5 py-4 text-xs text-slate-400"></div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 3: CGT TAX STRATEGY CALCULATOR ================= -->
+            <div id="tab-cgt" class="space-y-6 hidden">
+                <!-- Tax Configuration Header -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-sm space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Annual CGT Allowance (£)</label>
+                        <input type="number" id="cgtAllowanceInput" value="3000" onchange="updateCGTCalculations()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-lg font-bold text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-sm space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Planned Gains Realized</label>
+                        <div id="cgtTotalGain" class="text-2xl font-bold text-emerald-400 pt-1">£0.00</div>
+                    </div>
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-sm space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Remaining Tax-Free Margin</label>
+                        <div id="cgtRemainingMargin" class="text-2xl font-bold text-blue-400 pt-1">£3,000.00</div>
+                    </div>
+                </div>
+
+                <!-- Strategy Controls -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                                <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                                <span>Long-Term Core Protection Active</span>
+                            </h3>
+                            <p class="text-sm text-slate-400 mt-1">
+                                Positions flagged as long-term core holds are automatically kept off the sale list to protect your high-conviction assets.
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button type="button" onclick="applyOptimalStrategy()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>Auto-Optimize for £3k Limit</span>
+                            </button>
+                            <button type="button" onclick="clearAllSelections()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium px-4 py-2.5 rounded-xl transition">
+                                Reset Selections
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tax Harvesting Table -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-4 bg-slate-900/80 border-b border-slate-700 flex justify-between items-center">
+                        <h4 class="font-semibold text-white text-sm">Select Positions to Sell for Year 1 Tax Harvesting</h4>
+                        <span class="text-xs text-slate-400">Tick to sell &bull; edit &ldquo;Shares to Sell&rdquo; for a partial sale (blank = whole position)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900/90 border-b border-slate-700 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                    <th class="py-3 px-4 text-center w-12">Sell?</th>
+                                    <th class="py-3 px-4">Asset Name / Ticker</th>
+                                    <th class="py-3 px-4 text-right">Shares Owned</th>
+                                    <th class="py-3 px-4 text-right">Shares to Sell</th>
+                                    <th class="py-3 px-4 text-right">Sale Value (£)</th>
+                                    <th class="py-3 px-4 text-right">Gain / Loss on Sale (£)</th>
+                                    <th class="py-3 px-4 text-center">Core Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cgtTableBody" class="divide-y divide-slate-700/60 text-sm">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-slate-800/40 border-t border-slate-700/60 py-4 mt-8 text-center text-xs text-slate-500">
+            Portfolio Vision & Tax Harvester &bull; Built for UK Capital Gains Tax Optimization
+        </footer>
+    </div>
+
+    <!-- ADD / EDIT ASSET MODAL -->
+    <div id="assetModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+                <h3 id="modalTitle" class="text-lg font-bold text-white">Add New Asset</h3>
+                <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="assetForm" onsubmit="saveAsset(event)" class="space-y-4">
+                <input type="hidden" id="editIndex" value="-1">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Asset Name / Ticker</label>
+                    <input type="text" id="modalName" required placeholder="e.g. Nvidia ($NVDA)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Current Value (£)</label>
+                        <input type="number" step="0.01" id="modalValue" required placeholder="1114.63" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Total Return (%)</label>
+                        <input type="number" step="0.01" id="modalReturn" required placeholder="492.17" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Shares Owned (optional)</label>
+                    <input type="number" step="any" min="0" id="modalShares" placeholder="e.g. 6.9463" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                </div>
+                <div class="flex items-center space-x-3 pt-2">
+                    <input type="checkbox" id="modalCore" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-600 focus:ring-brand-500">
+                    <label for="modalCore" class="text-sm font-medium text-slate-300">Mark as Long-Term Core Hold (Protected)</label>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium transition shadow-lg shadow-brand-600/20">Save Asset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // default portfolio value (can be inserted by hand)
+        const DATA_VERSION = ''; // bump to force-refresh cached browser data
+        const defaultPortfolio = [];
+
+        // Active State Initialization
+        let portfolio = [];
+        let currentSort = { column: 'gainLoss', direction: 'desc' }; // Default sort by Gain/Loss descending
+
+        // Calculate Cost Basis and Gain/Loss from Current Value and Return Percentage
+        function calculateAsset(item) {
+            const returnDecimal = (item.returnPct || 0) / 100;
+            const costBasis = item.value / (1 + returnDecimal);
+            const gainLoss = item.value - costBasis;
+            return {
+                costBasis: isNaN(costBasis) ? 0 : costBasis,
+                gainLoss: isNaN(gainLoss) ? 0 : gainLoss
+            };
+        }
+
+        // Format a share count (up to 4 dp, trailing zeros trimmed)
+        function fmtShares(n) {
+            return Number(Number(n).toFixed(4)).toString();
+        }
+
+        // Fraction of a position planned for sale (1 = whole position).
+        // Only partial when the share count is known and a smaller "shares to sell" was entered.
+        function sellFraction(item) {
+            if (!item.shares || item.shares <= 0 || item.sellShares == null) return 1;
+            return Math.min(1, Math.max(0, item.sellShares / item.shares));
+        }
+
+        // Proceeds and realised gain for the planned sale (average-cost / pooled basis: gain scales with shares sold)
+        function saleDetails(item) {
+            const calc = calculateAsset(item);
+            const f = sellFraction(item);
+            return { fraction: f, proceeds: item.value * f, gain: calc.gainLoss * f, totalGain: calc.gainLoss };
+        }
+
+        // Save Portfolio to LocalStorage and Refresh Views
+        function saveAndRefresh() {
+            localStorage.setItem('portfolio_vision_data', JSON.stringify(portfolio));
+            renderDashboard();
+            renderCGTTable();
+        }
+
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            ['dashboard', 'upload', 'cgt'].forEach(tab => {
+                const tabEl = document.getElementById(`tab-${tab}`);
+                const navEl = document.getElementById(`nav-${tab}`);
+                const mobNavEl = document.getElementById(`mob-nav-${tab}`);
+                
+                if (tabEl) {
+                    if (tab === tabId) {
+                        tabEl.classList.remove('hidden');
+                    } else {
+                        tabEl.classList.add('hidden');
+                    }
+                }
+
+                if (navEl) {
+                    if (tab === tabId) {
+                        navEl.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-brand-600 text-white shadow flex items-center space-x-2";
+                    } else {
+                        navEl.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center space-x-2";
+                    }
+                }
+
+                if (mobNavEl) {
+                    if (tab === tabId) {
+                        mobNavEl.className = "text-xs font-medium py-1.5 px-3 rounded-lg text-white bg-brand-600 flex items-center space-x-1";
+                    } else {
+                        mobNavEl.className = "text-xs font-medium py-1.5 px-3 rounded-lg text-slate-400 flex items-center space-x-1";
+                    }
+                }
+            });
+
+            if (tabId === 'cgt') {
+                renderCGTTable();
+            }
+        }
+
+        // Load saved data only if it was saved with the current dataset version;
+        // otherwise (e.g. old cached numbers) fall back to the defaults and re-cache them.
+        let savedData = null, savedVersion = null;
+        try {
+            savedData = localStorage.getItem('portfolio_vision_data');
+            savedVersion = localStorage.getItem('portfolio_vision_version');
+        } catch(e) {}
+        if (savedData && savedVersion === DATA_VERSION) {
+            try {
+                portfolio = JSON.parse(savedData);
+            } catch(e) {
+                portfolio = JSON.parse(JSON.stringify(defaultPortfolio));
+            }
+        } else {
+            portfolio = JSON.parse(JSON.stringify(defaultPortfolio));
+            try {
+                localStorage.setItem('portfolio_vision_data', JSON.stringify(portfolio));
+                localStorage.setItem('portfolio_vision_version', DATA_VERSION);
+            } catch(e) {}
+        }
+
+        // Migrate cached data saved before share counts existed: fill in `shares`
+        // from the defaults (matched by name, ignoring the (ticker) suffix) and keep everything else.
+        (function migrateShares() {
+            const base = s => s.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+            const lookup = {};
+            defaultPortfolio.forEach(d => { lookup[base(d.name)] = d; });
+            let changed = false;
+            portfolio.forEach(item => {
+                if (item.name === 'Global Clean Water Dis (£IWFGB)') { item.name = 'Global Clean Water Dis (£IH2O)'; changed = true; }
+                if (item.shares === undefined) {
+                    const d = lookup[base(item.name)];
+                    item.shares = d && d.shares != null ? d.shares : null;
+                    changed = true;
+                }
+                if (item.sellShares === undefined) { item.sellShares = null; changed = true; }
+            });
+            if (changed) { try { localStorage.setItem('portfolio_vision_data', JSON.stringify(portfolio)); } catch(e) {} }
+        })();
+
+        // Sorting Handler
+        function handleSort(column) {
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'desc';
+            }
+            renderDashboard();
+        }
+
+        // Update Sort Icons in Header
+        function updateSortIcons() {
+            ['name', 'shares', 'value', 'returnPct', 'costBasis', 'gainLoss'].forEach(col => {
+                const icon = document.getElementById(`sort-icon-${col}`);
+                if (!icon) return;
+                
+                if (currentSort.column === col) {
+                    if (currentSort.direction === 'desc') {
+                        icon.className = 'fa-solid fa-arrow-down text-brand-400 text-xs';
+                    } else {
+                        icon.className = 'fa-solid fa-arrow-up text-brand-400 text-xs';
+                    }
+                } else {
+                    icon.className = 'fa-solid fa-sort text-slate-500 text-xs';
+                }
+            });
+        }
+
+        // Render Dashboard & Holdings
+        function renderDashboard() {
+            const tbody = document.getElementById('holdingsTableBody');
+            const searchInput = document.getElementById('searchInput');
+            const categorySelect = document.getElementById('filterCategory');
+
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const categoryFilter = categorySelect ? categorySelect.value : 'all';
+
+            updateSortIcons();
+
+            if (!portfolio || portfolio.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-12 text-center">
+                            <div class="max-w-md mx-auto space-y-3">
+                                <div class="bg-slate-800 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto text-slate-500 border border-slate-700">
+                                    <i class="fa-solid fa-folder-open text-xl"></i>
+                                </div>
+                                <div class="text-white font-semibold text-base">Portfolio is Completely Empty</div>
+                                <p class="text-xs text-slate-400">There are currently 0 assets tracked. Click 'Reset Full Dataset' to restore the exact 90-asset dataset (£26,755.49 total value).</p>
+                                <div class="pt-2 flex justify-center space-x-3">
+                                    <button type="button" onclick="openAddModal()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-plus"></i>
+                                        <span>Add First Asset</span>
+                                    </button>
+                                    <button type="button" onclick="resetToDefaultData()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium px-4 py-2 rounded-xl transition flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                        <span>Restore Default Dataset</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                updateStats();
+                return;
+            }
+
+            // Process and calculate
+            let processed = portfolio.map((item, index) => {
+                const calc = calculateAsset(item);
+                return { ...item, originalIndex: index, ...calc };
+            });
+
+            // Dynamic sorting based on active column and direction
+            processed.sort((a, b) => {
+                // Holdings without a share count sort as -1 so they group together at the end
+                const sortVal = (o) => currentSort.column === 'shares' ? (o.shares == null ? -1 : o.shares) : o[currentSort.column];
+                let valA = sortVal(a);
+                let valB = sortVal(b);
+
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+
+                if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Filter
+            processed = processed.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchTerm);
+                if (!matchesSearch) return false;
+                if (categoryFilter === 'core') return item.isCore;
+                if (categoryFilter === 'gainer') return item.gainLoss > 0;
+                if (categoryFilter === 'loser') return item.gainLoss < 0;
+                return true;
+            });
+
+            if (processed.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500">No positions found matching your search or category filter.</td></tr>`;
+                updateStats();
+                return;
+            }
+
+            tbody.innerHTML = processed.map(item => {
+                const isPositive = item.gainLoss >= 0;
+                return `
+                    <tr class="hover:bg-slate-700/30 transition border-b border-slate-700/40">
+                        <td class="py-3.5 px-4 font-medium text-white flex items-center space-x-2">
+                            <span>${item.name}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-right text-slate-300 tabular-nums">${item.shares != null ? fmtShares(item.shares) : '<span class="text-slate-600" title="Share count not set - use Edit to add it">&mdash;</span>'}</td>
+                        <td class="py-3.5 px-4 text-right text-slate-200 font-semibold">£${item.value.toFixed(2)}</td>
+                        <td class="py-3.5 px-4 text-right ${item.returnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-medium">
+                            ${item.returnPct >= 0 ? '+' : ''}${item.returnPct.toFixed(2)}%
+                        </td>
+                        <td class="py-3.5 px-4 text-right text-slate-400">£${item.costBasis.toFixed(2)}</td>
+                        <td class="py-3.5 px-4 text-right font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${isPositive ? '+' : ''}£${item.gainLoss.toFixed(2)}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            ${item.isCore ? '<span class="bg-amber-500/10 text-amber-400 text-xs px-2.5 py-1 rounded-full border border-amber-500/20 font-medium"><i class="fa-solid fa-shield-halved mr-1"></i>Core Hold</span>' : '<span class="text-slate-500 text-xs">Standard</span>'}
+                        </td>
+                        <td class="py-3.5 px-4 text-center space-x-1">
+                            <button type="button" onclick="openEditModal(${item.originalIndex})" class="p-1.5 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteAsset(${item.originalIndex})" class="p-1.5 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-rose-400 transition" title="Delete">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateStats();
+        }
+
+        // Update Header Metric Statistics
+        function updateStats() {
+            let totalVal = 0;
+            let totalGain = 0;
+            let coreCount = 0;
+
+            portfolio.forEach(item => {
+                const calc = calculateAsset(item);
+                totalVal += item.value;
+                totalGain += calc.gainLoss;
+                if (item.isCore) coreCount++;
+            });
+
+            document.getElementById('stat-total-val').innerText = `£${totalVal.toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const gainEl = document.getElementById('stat-total-gain');
+            gainEl.innerText = `${totalGain >= 0 ? '+' : ''}£${totalGain.toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            gainEl.className = `text-2xl font-bold ${totalGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            
+            document.getElementById('stat-holding-count').innerText = portfolio.length;
+            document.getElementById('stat-core-count').innerText = `${coreCount} Protected`;
+            document.getElementById('stat-core-sub').innerText = coreCount === 0 ? "No active core holdings" : "Protected from CGT harvesting";
+        }
+
+        // Modal Functionality
+        function openAddModal() {
+            document.getElementById('modalTitle').innerText = "Add New Asset";
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('modalName').value = "";
+            document.getElementById('modalValue').value = "";
+            document.getElementById('modalReturn').value = "";
+            document.getElementById('modalShares').value = "";
+            document.getElementById('modalCore').checked = false;
+            document.getElementById('assetModal').classList.remove('hidden');
+        }
+
+        function openEditModal(index) {
+            const asset = portfolio[index];
+            if (!asset) return;
+            document.getElementById('modalTitle').innerText = "Edit Asset";
+            document.getElementById('editIndex').value = index;
+            document.getElementById('modalName').value = asset.name;
+            document.getElementById('modalValue').value = asset.value;
+            document.getElementById('modalReturn').value = asset.returnPct;
+            document.getElementById('modalShares').value = asset.shares != null ? asset.shares : "";
+            document.getElementById('modalCore').checked = !!asset.isCore;
+            document.getElementById('assetModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('assetModal').classList.add('hidden');
+        }
+
+        function saveAsset(e) {
+            e.preventDefault();
+            const editIndex = parseInt(document.getElementById('editIndex').value, 10);
+            const name = document.getElementById('modalName').value.trim();
+            const value = parseFloat(document.getElementById('modalValue').value);
+            const returnPct = parseFloat(document.getElementById('modalReturn').value);
+            const isCore = document.getElementById('modalCore').checked;
+            const sharesRaw = document.getElementById('modalShares').value.trim();
+            const shares = sharesRaw === '' ? null : parseFloat(sharesRaw);
+
+            if (!name || isNaN(value) || isNaN(returnPct) || (shares !== null && (isNaN(shares) || shares <= 0))) {
+                alert("Please fill in valid asset details (shares, if given, must be greater than 0).");
+                return;
+            }
+
+            // Keep a partial-sale amount only if it is still smaller than the (possibly edited) share count
+            const prevSell = (editIndex >= 0 && portfolio[editIndex]) ? portfolio[editIndex].sellShares : null;
+            const assetObj = {
+                name,
+                value,
+                returnPct,
+                shares,
+                sellShares: (shares !== null && prevSell != null && prevSell < shares) ? prevSell : null,
+                isCore,
+                selectedForSale: false
+            };
+
+            if (editIndex >= 0 && editIndex < portfolio.length) {
+                portfolio[editIndex] = { ...portfolio[editIndex], ...assetObj };
+            } else {
+                portfolio.push(assetObj);
+            }
+
+            closeModal();
+            saveAndRefresh();
+        }
+
+        // Delete Individual Asset
+        function deleteAsset(index) {
+            if (confirm('Are you sure you want to delete this position?')) {
+                portfolio.splice(index, 1);
+                saveAndRefresh();
+            }
+        }
+
+        // Clear All Holdings Entirely
+        function clearAllAssets() {
+            if (confirm('Wipe entire portfolio? This will remove all holdings and clear core holds list completely.')) {
+                portfolio = [];
+                saveAndRefresh();
+            }
+        }
+
+        // Reload Pre-Populated Dataset
+        function resetToDefaultData() {
+            if (confirm('Reload the full pre-populated 80+ asset Freetrade dataset with default core holds?')) {
+                portfolio = JSON.parse(JSON.stringify(defaultPortfolio));
+                saveAndRefresh();
+            }
+        }
+
+        // Render CGT Strategy Matrix
+        function renderCGTTable() {
+            const tbody = document.getElementById('cgtTableBody');
+            
+            if (!portfolio || portfolio.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-500">
+                            No holdings in portfolio to plan CGT strategy. Add assets on the Dashboard or Screenshot tab first.
+                        </td>
+                    </tr>
+                `;
+                updateCGTCalculations();
+                return;
+            }
+
+            tbody.innerHTML = portfolio.map((item, index) => {
+                let sharesInput;
+                if (item.shares == null) {
+                    sharesInput = '<span class="text-slate-600 text-xs" title="Share count not set - add it via Edit on the Dashboard to enable partial sales">n/a</span>';
+                } else if (item.isCore) {
+                    sharesInput = `<span class="text-slate-600 text-xs">${fmtShares(item.shares)}</span>`;
+                } else {
+                    sharesInput = `<input type="text" inputmode="decimal" id="sellShares-${index}" value="${fmtShares(item.sellShares != null ? item.sellShares : item.shares)}" placeholder="${fmtShares(item.shares)}" onfocus="this.select()" onchange="setSellShares(${index}, this)" title="Shares to sell (max ${fmtShares(item.shares)}). Leave blank to sell the whole position." class="w-24 text-right tabular-nums bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-brand-500">`;
+                }
+                return `
+                    <tr class="hover:bg-slate-700/30 transition border-b border-slate-700/40">
+                        <td class="py-3 px-4 text-center">
+                            <input type="checkbox" id="sellChk-${index}" ${item.selectedForSale && !item.isCore ? 'checked' : ''} ${item.isCore ? 'disabled title="Core holds are protected from sale"' : ''} onchange="toggleSaleSelection(${index})" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-600 focus:ring-brand-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
+                        </td>
+                        <td class="py-3 px-4 font-medium text-white">${item.name}</td>
+                        <td class="py-3 px-4 text-right text-slate-400 tabular-nums">${item.shares != null ? fmtShares(item.shares) : '<span class="text-slate-600">&mdash;</span>'}</td>
+                        <td class="py-3 px-4 text-right">${sharesInput}</td>
+                        <td id="cgt-val-${index}" class="py-3 px-4 text-right text-slate-200">${cgtValueHTML(item)}</td>
+                        <td id="cgt-gain-${index}" class="py-3 px-4 text-right">${cgtGainHTML(item)}</td>
+                        <td class="py-3 px-4 text-center">
+                            ${item.isCore ? '<span class="bg-amber-500/10 text-amber-400 text-xs px-2.5 py-1 rounded-full border border-amber-500/20 font-medium"><i class="fa-solid fa-lock mr-1"></i>Core Hold</span>' : '<span class="text-slate-400 text-xs">Eligible</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateCGTCalculations();
+        }
+
+        // Cell contents for the planned-sale columns (shared by full render and in-place updates)
+        function cgtValueHTML(item) {
+            const d = saleDetails(item);
+            const sub = d.fraction < 1 ? `<div class="text-xs text-slate-500">of £${item.value.toFixed(2)}</div>` : '';
+            return `£${d.proceeds.toFixed(2)}${sub}`;
+        }
+
+        function cgtGainHTML(item) {
+            const d = saleDetails(item);
+            const fmt = (v) => `${v >= 0 ? '+' : '-'}£${Math.abs(v).toFixed(2)}`;
+            const cls = d.gain >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            const sub = d.fraction < 1 ? `<div class="text-xs text-slate-500 font-normal">of ${fmt(d.totalGain)}</div>` : '';
+            return `<span class="font-bold ${cls}">${fmt(d.gain)}</span>${sub}`;
+        }
+
+        function updateCGTRow(index) {
+            const item = portfolio[index];
+            if (!item) return;
+            const v = document.getElementById(`cgt-val-${index}`);
+            const g = document.getElementById(`cgt-gain-${index}`);
+            if (v) v.innerHTML = cgtValueHTML(item);
+            if (g) g.innerHTML = cgtGainHTML(item);
+        }
+
+        // Handle the "Shares to Sell" text box: blank or the full amount = whole position
+        function setSellShares(index, el) {
+            const item = portfolio[index];
+            if (!item || item.isCore || !item.shares) return;
+
+            const raw = el.value.trim().replace(',', '.');
+            let warn = '';
+            if (raw === '') {
+                item.sellShares = null;
+            } else {
+                const n = Number(raw);
+                if (!isFinite(n) || n <= 0) {
+                    warn = 'Enter a number greater than 0 (or leave blank to sell everything).';
+                } else {
+                    const r = Math.round(n * 10000) / 10000;
+                    if (r >= item.shares) {
+                        item.sellShares = null; // whole position
+                        if (r > item.shares) warn = `You only own ${fmtShares(item.shares)} shares - set to the full position.`;
+                    } else {
+                        item.sellShares = r;
+                    }
+                }
+            }
+
+            el.value = fmtShares(item.sellShares != null ? item.sellShares : item.shares);
+
+            if (warn) {
+                el.title = warn;
+                el.classList.add('border-rose-500');
+                setTimeout(() => el.classList.remove('border-rose-500'), 1800);
+                if (raw !== '' && !(Number(raw) > 0)) return; // invalid input: nothing else changed
+            }
+
+            // Entering an amount implies the position is part of the sale plan
+            if (!item.selectedForSale) {
+                item.selectedForSale = true;
+                const chk = document.getElementById(`sellChk-${index}`);
+                if (chk) chk.checked = true;
+            }
+            localStorage.setItem('portfolio_vision_data', JSON.stringify(portfolio));
+            updateCGTRow(index);
+            updateCGTCalculations();
+        }
+
+        function toggleSaleSelection(index) {
+            if (portfolio[index] && !portfolio[index].isCore) {
+                portfolio[index].selectedForSale = !portfolio[index].selectedForSale;
+                localStorage.setItem('portfolio_vision_data', JSON.stringify(portfolio));
+                updateCGTCalculations();
+            }
+        }
+
+        function updateCGTCalculations() {
+            const allowance = parseFloat(document.getElementById('cgtAllowanceInput').value) || 3000;
+            let totalGainRealized = 0;
+
+            portfolio.forEach(item => {
+                if (item.selectedForSale) {
+                    totalGainRealized += saleDetails(item).gain;
+                }
+            });
+
+            const remainingMargin = allowance - totalGainRealized;
+
+            document.getElementById('cgtTotalGain').innerText = `£${totalGainRealized.toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const marginEl = document.getElementById('cgtRemainingMargin');
+            marginEl.innerText = `£${remainingMargin.toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            if (totalGainRealized > allowance) {
+                marginEl.className = 'text-2xl font-bold text-rose-400 pt-1';
+            } else {
+                marginEl.className = 'text-2xl font-bold text-blue-400 pt-1';
+            }
+
+            document.getElementById('stat-cgt-margin').innerText = `£${Math.max(0, remainingMargin).toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        function applyOptimalStrategy() {
+            portfolio.forEach((item, idx) => {
+                portfolio[idx].sellShares = null; // optimal strategy sells whole positions
+                if (item.isCore) {
+                    portfolio[idx].selectedForSale = false;
+                } else {
+                    if (['NASDAQ 100 Dis (£EQQQ)', 'Nvidia ($NVDA)', 'Raiffeisen Bank', 'Adobe ($ADBE)', 'Wizz Air (£WIZZ)'].includes(item.name)) {
+                        portfolio[idx].selectedForSale = true;
+                    } else {
+                        portfolio[idx].selectedForSale = false;
+                    }
+                }
+            });
+            saveAndRefresh();
+        }
+
+        function clearAllSelections() {
+            portfolio.forEach((item, idx) => {
+                portfolio[idx].selectedForSale = false;
+                portfolio[idx].sellShares = null;
+            });
+            saveAndRefresh();
+        }
+
+        // =====================================================================
+        // SCREENSHOT OCR PARSER (Tesseract.js runs in the browser; nothing is uploaded)
+        // =====================================================================
+        const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+        let uploadedFilesQueue = [];
+        let uploadThumbURLs = [];
+        let reviewRows = [];
+        let lastImportBackup = null;
+        let ocrRunning = false;
+
+        // ---------- small helpers ----------
+        const isNum = (v) => typeof v === 'number' && isFinite(v);
+
+        function escHTML(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // Parse a number from user/OCR text: tolerates £ $ € % , spaces ("75 .86") and unicode minus signs
+        function parseNum(s) {
+            if (s == null) return null;
+            const t = String(s).replace(/[£$€%\s,]/g, '').replace(/[−–—]/g, '-');
+            if (t === '' || t === '-' || t === '+') return null;
+            const n = Number(t);
+            return isFinite(n) ? n : null;
+        }
+
+        // ---------- file handling (drag & drop, thumbnails) ----------
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('dropzone').classList.add('border-brand-500');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('dropzone').classList.remove('border-brand-500');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropzone').classList.remove('border-brand-500');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFiles(e.target.files);
+            }
+            e.target.value = ''; // allow choosing the same file again later
+        }
+
+        function handleFiles(files) {
+            const imgs = Array.from(files).filter(f => f.type && f.type.startsWith('image/'));
+            if (imgs.length === 0) return;
+            uploadedFilesQueue = uploadedFilesQueue.concat(imgs);
+            renderUploadThumbs();
+        }
+
+        function renderUploadThumbs() {
+            uploadThumbURLs.forEach(u => URL.revokeObjectURL(u));
+            uploadThumbURLs = [];
+            const grid = document.getElementById('uploadPreviewGrid');
+            grid.innerHTML = '';
+            const has = uploadedFilesQueue.length > 0;
+            grid.classList.toggle('hidden', !has);
+            document.getElementById('parserActionArea').classList.toggle('hidden', !has);
+            uploadedFilesQueue.forEach((file, idx) => {
+                const url = URL.createObjectURL(file);
+                uploadThumbURLs.push(url);
+                const div = document.createElement('div');
+                div.className = 'relative bg-slate-900 border border-slate-700 rounded-xl overflow-hidden h-40 flex items-center justify-center';
+                div.innerHTML = `<img src="${url}" class="w-full h-full object-contain">` +
+                    `<div class="absolute bottom-1 right-1 bg-slate-950/80 text-xs px-2 py-0.5 rounded text-slate-300">Img ${idx + 1}</div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        function clearUploads() {
+            if (ocrRunning) return;
+            uploadedFilesQueue = [];
+            renderUploadThumbs();
+            document.getElementById('ocrProgress').classList.add('hidden');
+        }
+
+        // ---------- OCR engine loading & image preparation ----------
+        function loadTesseract() {
+            if (window.Tesseract) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = TESSERACT_URL;
+                s.onload = () => window.Tesseract ? resolve() : reject(new Error('OCR engine failed to initialise.'));
+                s.onerror = () => reject(new Error('Could not download the OCR engine. It needs an internet connection the first time you use it.'));
+                document.head.appendChild(s);
+            });
+        }
+
+        function loadImageFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`Could not read image "${file.name}".`)); };
+                img.src = url;
+            });
+        }
+
+        // Returns { ocrCanvas, colour } - same dimensions. ocrCanvas is greyscale (inverted if the
+        // screenshot is dark mode) for the OCR; `colour` keeps the original colours so the
+        // red/green of the return % can be used to double-check the +/- sign.
+        async function prepareImage(file) {
+            const img = await loadImageFromFile(file);
+            const w = img.naturalWidth, h = img.naturalHeight;
+            let scale = 1;
+            if (w < 1100) scale = Math.min(1400 / w, 3);       // small screenshots read much better upscaled
+            if (h * scale > 7000) scale = Math.max(1, 7000 / h); // keep very tall captures manageable
+            const cw = Math.round(w * scale), ch = Math.round(h * scale);
+
+            const cCol = document.createElement('canvas');
+            cCol.width = cw; cCol.height = ch;
+            const ctx = cCol.getContext('2d', { willReadFrequently: true });
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, cw, ch);
+            const colour = ctx.getImageData(0, 0, cw, ch);
+
+            // Greyscale + dark-mode detection
+            const src = colour.data;
+            const n = cw * ch;
+            const grey = new Uint8ClampedArray(n);
+            let lumSum = 0, samples = 0;
+            for (let p = 0, k = 0; p < n; p++, k += 4) {
+                const g = 0.299 * src[k] + 0.587 * src[k + 1] + 0.114 * src[k + 2];
+                grey[p] = g;
+                if ((p & 15) === 0) { lumSum += g; samples++; }
+            }
+            const dark = (lumSum / Math.max(1, samples)) < 110;
+
+            const cOcr = document.createElement('canvas');
+            cOcr.width = cw; cOcr.height = ch;
+            const octx = cOcr.getContext('2d');
+            const out = octx.createImageData(cw, ch);
+            for (let p = 0, k = 0; p < n; p++, k += 4) {
+                const v = dark ? 255 - grey[p] : grey[p];
+                out.data[k] = out.data[k + 1] = out.data[k + 2] = v;
+                out.data[k + 3] = 255;
+            }
+            octx.putImageData(out, 0, 0);
+            return { ocrCanvas: cOcr, colour, dark };
+        }
+
+        // ---------- parsing (pure functions: no DOM access) ----------
+        const VALUE_RE = /(?:^|\s)[^\s\d]?\s?((?:\d{1,3}(?:,\d{3})+|\d+)\s?\.\s?\d{2})\s*[^\d\s]?\s*$/;
+        const SUB_RE = /^(.*?)\s*\bSHARES?\b\s*([^\d\s.]{0,2})\s*(\d[\d,]*\s?\.\s?\d{1,2})\s?%/i;
+        const TICKER_RE = /^[£$€][A-Z0-9.]{1,7}$/;
+
+        function cleanName(s) {
+            let t = String(s || '').replace(/[|\\_~<>"]+/g, ' ').replace(/\s+/g, ' ').trim();
+            const toks = t.split(' ');
+            // drop leading logo-noise such as "oO", "0)", "©" (short, not a currency symbol, not a 2-char CAPS name like "BP" or "3M")
+            while (toks.length > 1 && toks[0].length <= 2 && !/^[£$€]/.test(toks[0]) && !(/^[A-Z0-9]{2}$/.test(toks[0]) && /[A-Z]/.test(toks[0]))) toks.shift();
+            return toks.join(' ').trim();
+        }
+
+        function cleanTicker(s) {
+            return String(s || '').replace(/\s+/g, '').replace(/[•·*©]+$/g, '').replace(/[<>"']/g, '').toUpperCase();
+        }
+
+        // Pull "£4,328.16" from the end of a line
+        function matchValueLine(text) {
+            const m = VALUE_RE.exec(text);
+            if (!m) return null;
+            return { index: m.index, value: parseNum(m[1]) };
+        }
+
+        // Pull "£EQQQ • 8 SHARES +75.86%" apart
+        function matchSubLine(text) {
+            const m = SUB_RE.exec(text);
+            if (!m) return null;
+            const left = m[1].trim();
+            let ticker = '', shares = null;
+            const lm = left.match(/^(\S+)\s+(?:\S{1,3}\s+)?(\d[\d,]*(?:\s?\.\s?\d+)?)$/);
+            if (lm) {
+                ticker = lm[1];
+                shares = parseNum(lm[2]);
+            } else {
+                const toks = left.split(/\s+/).filter(Boolean);
+                ticker = toks[0] || '';
+                const nums = toks.slice(1).filter(t => /^\d[\d,]*(\.\d+)?$/.test(t));
+                shares = nums.length ? parseNum(nums[nums.length - 1]) : null;
+            }
+            const signChars = m[2] || '';
+            const ocrSign = /[-−–—]/.test(signChars) ? '-' : (/\+/.test(signChars) ? '+' : null);
+            return { ticker: cleanTicker(ticker), shares, ocrSign, retAbs: parseNum(m[3]) };
+        }
+
+        // Region around the return % text (used to read its colour)
+        function returnRegion(line) {
+            const ws = (line.words || []).filter(w => w && w.bbox);
+            const pad = 4;
+            if (ws.length) {
+                let last = ws[ws.length - 1];
+                for (let i = ws.length - 1; i >= 0; i--) { if (/%/.test(ws[i].text || '')) { last = ws[i]; break; } }
+                const b = last.bbox, wd = Math.max(1, b.x1 - b.x0);
+                return { x0: b.x0 - wd * 1.2 - pad, x1: b.x1 + pad, y0: b.y0 - pad, y1: b.y1 + pad };
+            }
+            if (line.bbox) {
+                const b = line.bbox, wd = b.x1 - b.x0;
+                return { x0: b.x1 - wd * 0.18, x1: b.x1, y0: b.y0, y1: b.y1 };
+            }
+            return null;
+        }
+
+        // 'pos' (green), 'neg' (red) or null when unclear
+        function classifyReturnColour(img, box) {
+            if (!img || !box) return null;
+            const x0 = Math.max(0, Math.floor(box.x0)), x1 = Math.min(img.width, Math.ceil(box.x1));
+            const y0 = Math.max(0, Math.floor(box.y0)), y1 = Math.min(img.height, Math.ceil(box.y1));
+            const d = img.data;
+            let g = 0, r = 0;
+            for (let y = y0; y < y1; y++) {
+                for (let x = x0; x < x1; x++) {
+                    const k = (y * img.width + x) * 4;
+                    const R = d[k], G = d[k + 1], B = d[k + 2];
+                    const mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+                    if (mx - mn < 50) continue; // grey/black/white text is ignored
+                    if (G > R * 1.25 && G >= B) g++;
+                    else if (R > G * 1.25 && R > B * 1.1) r++;
+                }
+            }
+            const tot = g + r;
+            if (tot < 12) return null;
+            if (g / tot >= 0.8) return 'pos';
+            if (r / tot >= 0.8) return 'neg';
+            return null;
+        }
+
+        // lines: [{ text, bbox?, words? }] in reading order. Returns { rows, unparsed }.
+        function parseFreetradeLines(lines, colourImg) {
+            const rows = [];
+            const consumed = new Array(lines.length).fill(false);
+            for (let i = 0; i < lines.length; i++) {
+                const sub = matchSubLine(lines[i].text);
+                if (!sub) continue;
+                let name = '', value = null;
+                // the name/value line is normally directly above; logo text (e.g. "iShares") can sit between, so look back up to 2 lines
+                let nameIdx = -1;
+                for (let k = 1; k <= 2 && i - k >= 0; k++) {
+                    const cand = lines[i - k];
+                    if (consumed[i - k] || matchSubLine(cand.text)) break;
+                    if (matchValueLine(cand.text)) { nameIdx = i - k; break; }
+                }
+                if (nameIdx < 0 && i > 0 && !consumed[i - 1] && !matchSubLine(lines[i - 1].text)) nameIdx = i - 1; // name line without a readable value
+                if (nameIdx >= 0) {
+                    const prev = lines[nameIdx].text;
+                    const vm = matchValueLine(prev);
+                    if (vm) { name = cleanName(prev.slice(0, vm.index)); value = vm.value; }
+                    else { name = cleanName(prev); }
+                    consumed[nameIdx] = true;
+                }
+                consumed[i] = true;
+
+                const colourSign = classifyReturnColour(colourImg, returnRegion(lines[i]));
+                let returnPct = isNum(sub.retAbs) ? sub.retAbs : null;
+                if (returnPct !== null) {
+                    const neg = sub.ocrSign === '-' || (sub.ocrSign === null && colourSign === 'neg');
+                    if (neg) returnPct = -returnPct;
+                }
+                rows.push({
+                    name, ticker: sub.ticker, shares: sub.shares, value, returnPct,
+                    ocrSign: sub.ocrSign, colourSign
+                });
+            }
+            // lines that look like data but were not paired up (possible missed holdings)
+            const unparsed = [];
+            lines.forEach((l, i) => {
+                if (!consumed[i] && (matchValueLine(l.text) || /\bSHARES?\b/i.test(l.text))) unparsed.push(l.text);
+            });
+            return { rows, unparsed };
+        }
+
+        // ---------- matching against existing holdings ----------
+        function appTickerOf(name) {
+            const m = String(name || '').match(/\(([£$€][^)]*)\)/);
+            return m ? m[1] : null;
+        }
+
+        // O/0 and I/1 are treated as the same character (the most common OCR confusions in monospace tickers)
+        function tickerKey(t) {
+            if (!t) return null;
+            const u = String(t).toUpperCase().replace(/\s+/g, '');
+            const sym = /^[£$€]/.test(u) ? u[0] : '';
+            const body = u.replace(/^[£$€]/, '').replace(/[^A-Z0-9.]/g, '').replace(/0/g, 'O').replace(/1/g, 'I');
+            return body ? { sym, body } : null;
+        }
+
+        function nameKey(n) {
+            return String(n || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9& ]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function similarity(a, b) {
+            if (a === b) return 1;
+            if (!a.length || !b.length) return 0;
+            const m = a.length, n = b.length;
+            let prev = Array.from({ length: n + 1 }, (_, j) => j);
+            for (let i = 1; i <= m; i++) {
+                const cur = [i];
+                for (let j = 1; j <= n; j++) {
+                    cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+                }
+                prev = cur;
+            }
+            return 1 - prev[n] / Math.max(m, n);
+        }
+
+        // Returns { idx, kind } with kind 'ticker' | 'name' | 'fuzzy', or { idx: -1, kind: null }
+        function findMatch(row) {
+            const rk = tickerKey(row.ticker);
+            if (rk) {
+                for (let i = 0; i < portfolio.length; i++) {
+                    const ak = tickerKey(appTickerOf(portfolio[i].name));
+                    if (!ak || ak.body !== rk.body) continue;
+                    if (rk.body.length < 2 && !(rk.sym && ak.sym)) continue;
+                    if (rk.sym && ak.sym && rk.sym !== ak.sym) continue;
+                    return { idx: i, kind: 'ticker' };
+                }
+            }
+            const rn = nameKey(row.name);
+            if (!rn) return { idx: -1, kind: null };
+            let best = -1, bestScore = 0, bestKind = null;
+            portfolio.forEach((it, i) => {
+                const an = nameKey(it.name);
+                if (!an) return;
+                let score = 0, kind = null;
+                if (an === rn) { score = 1; kind = 'name'; }
+                else {
+                    const [s, l] = an.length <= rn.length ? [an, rn] : [rn, an];
+                    if (s.length >= 3 && l.startsWith(s + ' ')) { score = 0.9; kind = 'fuzzy'; }
+                    else {
+                        const sim = similarity(an, rn);
+                        if (sim >= 0.85) { score = sim; kind = 'fuzzy'; }
+                    }
+                }
+                if (score > bestScore) { best = i; bestScore = score; bestKind = kind; }
+            });
+            return best >= 0 ? { idx: best, kind: bestKind } : { idx: -1, kind: null };
+        }
+
+        // Everything worth a second look for one review row (recomputed whenever a field is edited)
+        function computeFlags(r, targetCounts) {
+            const f = [];
+            if (!r.name) f.push('Name not read');
+            if (!isNum(r.value) || r.value < 0) f.push('Value not read');
+            if (!isNum(r.shares) || r.shares <= 0) f.push('Shares not read');
+            if (!isNum(r.returnPct)) f.push('Return % not read');
+            if (r.matchIdx < 0 && !TICKER_RE.test(r.ticker || '')) f.push('Ticker unclear');
+
+            if (isNum(r.returnPct) && r.returnPct !== 0) {
+                const neg = r.returnPct < 0;
+                if (r.colourSign && (r.colourSign === 'neg') !== neg) {
+                    f.push(`Return sign (${neg ? '−' : '+'}) conflicts with ${r.colourSign === 'neg' ? 'red' : 'green'} text in the screenshot`);
+                } else if (!r.colourSign && !r.ocrSign) {
+                    f.push('Return sign not detected: confirm + or −');
+                }
+            }
+
+            if (r.matchIdx >= 0) {
+                const it = portfolio[r.matchIdx];
+                if (r.matchKind === 'fuzzy') f.push(`Matched to "${it.name}" by similar name: confirm`);
+                if (targetCounts && targetCounts[r.matchIdx] > 1) f.push(`Another row also updates "${it.name}"`);
+                if (isNum(r.value) && it.value > 0) {
+                    if (isNum(r.shares) && r.shares > 0 && isNum(it.shares) && it.shares > 0) {
+                        const oldP = it.value / it.shares, newP = r.value / r.shares, ratio = newP / oldP;
+                        if (ratio < 0.65 || ratio > 1.35) {
+                            f.push(`Price per share £${newP.toFixed(2)} vs £${oldP.toFixed(2)} stored (${ratio >= 1 ? '+' : ''}${((ratio - 1) * 100).toFixed(0)}%): check digits`);
+                        }
+                    } else {
+                        const ratio = r.value / it.value;
+                        if (ratio < 0.5 || ratio > 1.5) f.push(`Value is ${ratio >= 1 ? '+' : ''}${((ratio - 1) * 100).toFixed(0)}% vs stored: check digits`);
+                    }
+                }
+            }
+            return f;
+        }
+
+        function recomputeReview() {
+            reviewRows.forEach(r => { const m = findMatch(r); r.matchIdx = m.idx; r.matchKind = m.kind; });
+            const counts = {};
+            reviewRows.forEach(r => { if (r.matchIdx >= 0) counts[r.matchIdx] = (counts[r.matchIdx] || 0) + 1; });
+            reviewRows.forEach(r => { r.flags = computeFlags(r, counts); });
+        }
+
+        function dedupKey(r) {
+            const k = tickerKey(r.ticker);
+            return k ? `t:${k.sym}${k.body}` : `n:${nameKey(r.name)}`;
+        }
+
+        // Same holding seen twice? (same ticker, or identical shares + value + return, which two different holdings never share)
+        function sameHolding(a, b) {
+            if (dedupKey(a) === dedupKey(b)) return true;
+            return isNum(a.shares) && isNum(a.value) && isNum(a.returnPct) &&
+                a.shares === b.shares && a.value === b.value && a.returnPct === b.returnPct;
+        }
+
+        // Which of two readings of the same holding is cleaner? (a partially cropped row is usually the garbled one)
+        function rowQuality(r) {
+            let q = 0;
+            if (TICKER_RE.test(r.ticker || '')) q += 4;
+            if (findMatch(r).idx >= 0) q += 2;
+            if (/^[A-Za-z0-9&'.,$€£\- ]{2,}$/.test(r.name || '')) q += 1;
+            return q;
+        }
+
+        // ---------- OCR run ----------
+        function setOcrStatus(text, pct, isError) {
+            const s = document.getElementById('ocrStatus');
+            s.textContent = text;
+            s.className = 'text-sm text-center ' + (isError ? 'text-rose-400' : 'text-slate-300');
+            if (isNum(pct)) document.getElementById('ocrBar').style.width = Math.max(0, Math.min(100, pct)) + '%';
+        }
+
+        async function runOCRParse() {
+            if (ocrRunning || uploadedFilesQueue.length === 0) return;
+            ocrRunning = true;
+            const btn = document.getElementById('ocrRunBtn');
+            btn.disabled = true;
+            document.getElementById('reviewPanel').classList.add('hidden');
+            document.getElementById('importResult').classList.add('hidden');
+            document.getElementById('ocrProgress').classList.remove('hidden');
+            let worker = null;
+            try {
+                const n = uploadedFilesQueue.length;
+                let cur = 0;
+                setOcrStatus('Loading OCR engine (the first run downloads a few MB)...', 3);
+                await loadTesseract();
+                worker = await Tesseract.createWorker('eng', 1, {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            setOcrStatus(`Reading screenshot ${cur + 1} of ${n}... ${Math.round(m.progress * 100)}%`, 10 + ((cur + m.progress) / n) * 88);
+                        } else if (/loading|initializ/i.test(m.status || '')) {
+                            setOcrStatus('Preparing OCR engine...', 5 + (m.progress || 0) * 5);
+                        }
+                    }
+                });
+                await worker.setParameters({ tessedit_pageseg_mode: '6' });
+
+                const all = [], unparsed = [];
+                for (cur = 0; cur < n; cur++) {
+                    setOcrStatus(`Reading screenshot ${cur + 1} of ${n}...`, 10 + (cur / n) * 88);
+                    const prep = await prepareImage(uploadedFilesQueue[cur]);
+                    const { data } = await worker.recognize(prep.ocrCanvas);
+                    const lines = (data.lines || [])
+                        .map(l => ({ text: String(l.text || '').replace(/\s+/g, ' ').trim(), bbox: l.bbox, words: l.words || [] }))
+                        .filter(l => l.text);
+                    const res = parseFreetradeLines(lines, prep.colour);
+                    res.rows.forEach(r => { r.src = cur; all.push(r); });
+                    res.unparsed.forEach(t => unparsed.push(t));
+                }
+                setOcrStatus('Done. Review the results below before importing.', 100);
+                buildReview(all, unparsed, n);
+            } catch (err) {
+                console.error(err);
+                setOcrStatus('OCR failed: ' + (err && err.message ? err.message : err), 0, true);
+            } finally {
+                if (worker) { try { await worker.terminate(); } catch (e) {} }
+                ocrRunning = false;
+                btn.disabled = false;
+            }
+        }
+
+        // ---------- review table ----------
+        function buildReview(rawRows, unparsed, nImages) {
+            // Merge overlapping screenshots: the later screenshot wins for a repeated holding
+            const kept = [];
+            let dupes = 0;
+            rawRows.forEach(r => {
+                const j = kept.findIndex(k => sameHolding(k, r));
+                if (j < 0) { kept.push(r); return; }
+                dupes++;
+                if (rowQuality(r) >= rowQuality(kept[j])) kept[j] = r; // later screenshot wins ties
+            });
+            reviewRows = kept.map(r => ({ ...r, include: false, isCore: false, flags: [], matchIdx: -1, matchKind: null }));
+            recomputeReview();
+            reviewRows.forEach(r => { r.include = r.flags.length === 0; });
+
+            const panel = document.getElementById('reviewPanel');
+            const un = document.getElementById('reviewUnparsed');
+            if (reviewRows.length === 0) {
+                panel.classList.add('hidden');
+                setOcrStatus('No holdings recognised. Use a screenshot of the Freetrade Investments list (rows showing name, ticker, shares and return %), and make sure it is sharp and not cropped.', 0, true);
+                return;
+            }
+            panel.classList.remove('hidden');
+            renderReviewTable();
+            updateReviewSummary(nImages, dupes);
+
+            if (unparsed.length) {
+                un.classList.remove('hidden');
+                un.innerHTML = `<div class="font-semibold text-amber-400 mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${unparsed.length} line(s) looked like holding data but could not be matched up (a holding may have been missed):</div>` +
+                    `<ul class="list-disc pl-5 space-y-0.5">${unparsed.slice(0, 12).map(t => `<li class="font-mono">${escHTML(t)}</li>`).join('')}</ul>` +
+                    `<div class="mt-1">Rows cut off at the top or bottom of a screenshot are expected here. Otherwise try a sharper or larger screenshot, or add the holding manually.</div>`;
+            } else {
+                un.classList.add('hidden');
+                un.innerHTML = '';
+            }
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function rvInput(i, field, val, width, right) {
+            const numeric = (field === 'shares' || field === 'value' || field === 'returnPct');
+            return `<input type="text" ${numeric ? 'inputmode="decimal"' : ''} value="${escHTML(val)}" onchange="reviewEdit(${i}, '${field}', this)" class="${width} ${right ? 'text-right tabular-nums' : ''} bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-brand-500">`;
+        }
+
+        function reviewStatusHTML(r) {
+            let badge, sub = '';
+            if (r.flags.length) {
+                badge = '<span class="bg-amber-500/10 text-amber-400 text-xs px-2 py-0.5 rounded-full border border-amber-500/30 font-medium">Check</span>';
+                sub = r.flags.map(t => `<div class="text-xs text-amber-400/90 mt-1 max-w-xs leading-snug">${escHTML(t)}</div>`).join('');
+            } else if (r.matchIdx >= 0) {
+                badge = '<span class="bg-brand-500/10 text-brand-400 text-xs px-2 py-0.5 rounded-full border border-brand-500/30 font-medium">Update</span>';
+            } else {
+                badge = '<span class="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-500/30 font-medium">New</span>';
+            }
+            if (r.matchIdx >= 0) {
+                sub = `<div class="text-xs text-slate-500 mt-1 max-w-xs leading-snug">Updates: ${escHTML(portfolio[r.matchIdx].name)}</div>` + sub;
+            }
+            return badge + sub;
+        }
+
+        // Core-hold cell: editable for new holdings; for existing holdings it just shows the current setting
+        function reviewCoreHTML(i, r) {
+            if (r.matchIdx >= 0 && portfolio[r.matchIdx]) {
+                const core = !!portfolio[r.matchIdx].isCore;
+                return `<span title="Existing holding: its core setting is kept (change it on the Dashboard)" class="${core ? 'text-amber-400' : 'text-slate-600'} text-xs">${core ? '<i class="fa-solid fa-shield-halved mr-1"></i>Core' : '&mdash;'}</span>`;
+            }
+            return `<label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-amber-400"><input type="checkbox" id="rv-core-${i}" ${r.isCore ? 'checked' : ''} onchange="reviewSetCore(${i}, this.checked)" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 cursor-pointer"><span><i class="fa-solid fa-shield-halved"></i></span></label>`;
+        }
+
+        function reviewSetCore(i, checked) {
+            if (reviewRows[i]) reviewRows[i].isCore = checked;
+        }
+
+        function reviewDiffHTML(r) {
+            if (r.matchIdx < 0) return '<span class="text-slate-600">new position</span>';
+            const it = portfolio[r.matchIdx];
+            const lines = [];
+            if (isNum(r.value)) {
+                const d = it.value ? (r.value / it.value - 1) * 100 : null;
+                lines.push(`£${it.value.toFixed(2)} &rarr; £${r.value.toFixed(2)}${d !== null ? ` (${d >= 0 ? '+' : ''}${d.toFixed(1)}%)` : ''}`);
+            }
+            if (isNum(r.shares)) lines.push(`shares ${isNum(it.shares) ? fmtShares(it.shares) : '&mdash;'} &rarr; ${fmtShares(r.shares)}`);
+            if (isNum(r.returnPct)) lines.push(`return ${it.returnPct.toFixed(2)}% &rarr; ${r.returnPct.toFixed(2)}%`);
+            return lines.join('<br>');
+        }
+
+        function renderReviewTable() {
+            const tbody = document.getElementById('reviewTableBody');
+            tbody.innerHTML = reviewRows.map((r, i) => `
+                <tr id="rv-row-${i}" class="${r.flags.length ? 'bg-amber-500/5' : ''}">
+                    <td class="py-2.5 px-3 text-center"><input type="checkbox" id="rv-inc-${i}" ${r.include ? 'checked' : ''} onchange="reviewToggle(${i}, this.checked)" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-600 cursor-pointer"></td>
+                    <td id="rv-status-${i}" class="py-2.5 px-3 align-top">${reviewStatusHTML(r)}</td>
+                    <td class="py-2.5 px-3">${rvInput(i, 'name', r.name, 'w-44', false)}</td>
+                    <td class="py-2.5 px-3">${rvInput(i, 'ticker', r.ticker, 'w-24', false)}</td>
+                    <td class="py-2.5 px-3 text-right">${rvInput(i, 'shares', isNum(r.shares) ? fmtShares(r.shares) : '', 'w-24', true)}</td>
+                    <td class="py-2.5 px-3 text-right">${rvInput(i, 'value', isNum(r.value) ? r.value.toFixed(2) : '', 'w-28', true)}</td>
+                    <td class="py-2.5 px-3 text-right">${rvInput(i, 'returnPct', isNum(r.returnPct) ? r.returnPct.toFixed(2) : '', 'w-24', true)}</td>
+                    <td id="rv-core-cell-${i}" class="py-2.5 px-3 text-center">${reviewCoreHTML(i, r)}</td>
+                    <td id="rv-diff-${i}" class="py-2.5 px-3 text-xs text-slate-400 whitespace-nowrap align-top">${reviewDiffHTML(r)}</td>
+                </tr>`).join('');
+        }
+
+        function refreshReviewRows() {
+            reviewRows.forEach((r, i) => {
+                const row = document.getElementById(`rv-row-${i}`);
+                const st = document.getElementById(`rv-status-${i}`);
+                const df = document.getElementById(`rv-diff-${i}`);
+                const cc = document.getElementById(`rv-core-cell-${i}`);
+                if (cc) cc.innerHTML = reviewCoreHTML(i, r);
+                if (row) row.className = r.flags.length ? 'bg-amber-500/5' : '';
+                if (st) st.innerHTML = reviewStatusHTML(r);
+                if (df) df.innerHTML = reviewDiffHTML(r);
+            });
+        }
+
+        let reviewMeta = { nImages: 1, dupes: 0 };
+        function updateReviewSummary(nImages, dupes) {
+            if (nImages !== undefined) reviewMeta = { nImages, dupes };
+            const total = reviewRows.length;
+            const bad = reviewRows.filter(r => r.flags.length).length;
+            const sel = reviewRows.filter(r => r.include).length;
+            document.getElementById('reviewSummary').innerHTML =
+                `${total} holding${total === 1 ? '' : 's'} read from ${reviewMeta.nImages} screenshot${reviewMeta.nImages === 1 ? '' : 's'}` +
+                `${reviewMeta.dupes ? ` (${reviewMeta.dupes} duplicate${reviewMeta.dupes === 1 ? '' : 's'} merged)` : ''} &bull; ` +
+                `<span class="text-emerald-400">${total - bad} ready</span>` +
+                `${bad ? ` &bull; <span class="text-amber-400">${bad} need checking</span>` : ''}`;
+            document.getElementById('reviewImportLabel').textContent = `Import ${sel} selected`;
+            document.getElementById('reviewImportBtn').disabled = sel === 0;
+        }
+
+        function reviewToggle(i, checked) {
+            if (reviewRows[i]) reviewRows[i].include = checked;
+            updateReviewSummary();
+        }
+
+        function reviewSelectOK() {
+            reviewRows.forEach((r, i) => {
+                r.include = r.flags.length === 0;
+                const c = document.getElementById(`rv-inc-${i}`);
+                if (c) c.checked = r.include;
+            });
+            updateReviewSummary();
+        }
+
+        function reviewSelectNone() {
+            reviewRows.forEach((r, i) => {
+                r.include = false;
+                const c = document.getElementById(`rv-inc-${i}`);
+                if (c) c.checked = false;
+            });
+            updateReviewSummary();
+        }
+
+        function reviewEdit(i, field, el) {
+            const r = reviewRows[i];
+            if (!r) return;
+            if (field === 'name') {
+                r.name = cleanName(el.value);
+                el.value = r.name;
+            } else if (field === 'ticker') {
+                r.ticker = cleanTicker(el.value);
+                el.value = r.ticker;
+            } else {
+                r[field] = parseNum(el.value);
+                if (field === 'shares') el.value = isNum(r.shares) ? fmtShares(r.shares) : '';
+                else el.value = isNum(r[field]) ? r[field].toFixed(2) : '';
+            }
+            recomputeReview();
+            refreshReviewRows();
+            updateReviewSummary();
+        }
+
+        function discardReview() {
+            reviewRows = [];
+            document.getElementById('reviewPanel').classList.add('hidden');
+            document.getElementById('ocrProgress').classList.add('hidden');
+        }
+
+        // ---------- import ----------
+        function showImportBanner(html, kind) {
+            const el = document.getElementById('importResult');
+            el.className = 'rounded-2xl border px-5 py-4 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 ' +
+                (kind === 'ok' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' : 'bg-slate-800/80 border-slate-700 text-slate-300');
+            el.innerHTML = html;
+        }
+
+        function importReviewedRows() {
+            const sel = reviewRows.filter(r => r.include);
+            if (sel.length === 0) return;
+            const incomplete = sel.filter(r => !r.name || !isNum(r.value) || r.value < 0 || !isNum(r.shares) || r.shares <= 0 || !isNum(r.returnPct));
+            if (incomplete.length) {
+                alert(`${incomplete.length} selected row(s) are missing a name, shares, value or return %. Fill them in or untick them first.`);
+                return;
+            }
+            const warned = sel.filter(r => r.flags.length);
+            if (warned.length && !confirm(`${warned.length} selected row(s) still have warnings (marked "Check"). Import them anyway?`)) return;
+
+            lastImportBackup = JSON.stringify(portfolio);
+            let updated = 0, added = 0, addedCore = 0;
+            sel.forEach(r => {
+                if (r.matchIdx >= 0 && portfolio[r.matchIdx]) {
+                    const it = portfolio[r.matchIdx];
+                    it.value = r.value;
+                    it.returnPct = r.returnPct;
+                    it.shares = r.shares;
+                    if (it.sellShares != null && it.sellShares >= it.shares) it.sellShares = null;
+                    updated++;
+                } else {
+                    const label = TICKER_RE.test(r.ticker || '') ? `${r.name} (${r.ticker})` : r.name;
+                    portfolio.push({ name: label, value: r.value, returnPct: r.returnPct, shares: r.shares, sellShares: null, isCore: !!r.isCore, selectedForSale: false });
+                    added++;
+                    if (r.isCore) addedCore++;
+                }
+            });
+            saveAndRefresh();
+
+            reviewRows = [];
+            uploadedFilesQueue = [];
+            renderUploadThumbs();
+            document.getElementById('reviewPanel').classList.add('hidden');
+            document.getElementById('ocrProgress').classList.add('hidden');
+            showImportBanner(
+                `<div><i class="fa-solid fa-circle-check mr-2"></i><strong>Import complete:</strong> ${updated} updated, ${added} added${addedCore ? ` (${addedCore} marked as core hold${addedCore === 1 ? '' : 's'})` : ''}. Holdings that were not in the screenshots were left unchanged.</div>` +
+                `<div class="flex gap-2 shrink-0">` +
+                `<button type="button" onclick="switchTab('dashboard')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-2 rounded-lg transition">View dashboard</button>` +
+                `<button type="button" onclick="undoLastImport()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition">Undo import</button></div>`, 'ok');
+        }
+
+        function undoLastImport() {
+            if (!lastImportBackup) return;
+            portfolio = JSON.parse(lastImportBackup);
+            lastImportBackup = null;
+            saveAndRefresh();
+            showImportBanner('<div><i class="fa-solid fa-rotate-left mr-2"></i>Import undone. Your portfolio is back to how it was before.</div>', 'info');
+        }
+
+        // Export Excel Spreadsheet
+        function exportToExcel() {
+            if (!portfolio || portfolio.length === 0) {
+                alert("Portfolio is empty. Add holdings before exporting.");
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            
+            const excelData = portfolio.map(item => {
+                const calc = calculateAsset(item);
+                return {
+                    "Asset Name / Ticker": item.name,
+                    "Shares Owned": item.shares != null ? item.shares : "",
+                    "Current Value (£)": Number(item.value.toFixed(2)),
+                    "Total Return (%)": Number(item.returnPct.toFixed(2)),
+                    "Estimated Cost Basis (£)": Number(calc.costBasis.toFixed(2)),
+                    "Gain / Loss (£)": Number(calc.gainLoss.toFixed(2)),
+                    "Long-Term Core Hold": item.isCore ? "Yes (Protected)" : "No"
+                };
+            });
+
+            excelData.sort((a, b) => b["Gain / Loss (£)"] - a["Gain / Loss (£)"]);
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            
+            ws['!cols'] = [
+                {wch: 32},
+                {wch: 14},
+                {wch: 18},
+                {wch: 18},
+                {wch: 22},
+                {wch: 18},
+                {wch: 20}
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, "Portfolio Gains & Losses");
+            XLSX.writeFile(wb, "Freetrade_Portfolio_Tax_Report.xlsx");
+        }
+
+        // App Initializer
+        window.onload = function() {
+            renderDashboard();
+            renderCGTTable();
+        };
+    </script>
+</body>
+</html>
